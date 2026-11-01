@@ -1,0 +1,15 @@
+- name: Safely activate a prepared Podinfo release
+  hosts: all
+  gather_facts: false
+  become: true
+  tasks:
+    - name: Switch release, restart and verify health
+      safe_release:
+        release: "{{ target_release | default('v2') }}"
+        expected_version: "{{ {'v1': '6.14.1', 'v2': '6.15.0', 'broken': '6.15.0'}[target_release | default('v2')] }}"
+        health_timeout: "{{ release_health_timeout | default(15) }}"
+      register: release_result
+
+    - name: Show release outcome
+      ansible.builtin.debug:
+        var: release_result

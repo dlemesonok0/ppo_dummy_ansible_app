@@ -1,0 +1,12 @@
+# WSL controller using Windows OpenSSH when WSL networking is unavailable.
+all:
+  hosts:
+    demo_server:
+      ansible_host: 192.0.2.10
+      ansible_user: ubuntu
+      ansible_python_interpreter: /usr/bin/python3
+      ansible_ssh_executable: ./scripts/wsl-windows-ssh.sh
+      ansible_ssh_args: -C
+      ansible_ssh_transfer_method: piped
+      ansible_ssh_use_tty: false
+      ansible_ssh_common_args: -o StrictHostKeyChecking=yes -o UserKnownHostsFile=artifacts/known_hosts

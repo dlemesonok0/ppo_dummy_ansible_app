@@ -1,0 +1,21 @@
+- name: Trace a minimal Python module
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Check Ansible connectivity and target Python
+      ansible.builtin.ping:
+
+    - name: Return the argument through Ansiballz
+      echo_probe:
+        message: "{{ probe_message | default('Привет, Ansiballz!') }}"
+      register: probe
+
+    - name: Verify the round trip and unchanged status
+      ansible.builtin.assert:
+        that:
+          - probe.message == (probe_message | default('Привет, Ansiballz!'))
+          - not probe.changed
+
+    - name: Show the module result
+      ansible.builtin.debug:
+        var: probe

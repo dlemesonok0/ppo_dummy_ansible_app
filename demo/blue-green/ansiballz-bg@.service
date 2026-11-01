@@ -1,0 +1,18 @@
+[Unit]
+Description=Podinfo blue-green slot %i
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStartPre=-/usr/bin/docker rm -f ansiballz-bg-%i
+ExecStart=/opt/ansiballz-bg/run.sh %i
+ExecStop=/usr/bin/docker stop --time 10 ansiballz-bg-%i
+ExecStopPost=-/usr/bin/docker rm -f ansiballz-bg-%i
+Restart=on-failure
+RestartSec=2
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

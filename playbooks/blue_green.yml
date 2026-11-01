@@ -1,0 +1,19 @@
+- name: Deploy Podinfo using blue-green slots
+  hosts: all
+  gather_facts: false
+  become: true
+  tasks:
+    - name: Prepare candidate and switch nginx only after health verification
+      safe_release:
+        strategy: blue_green
+        root: /opt/ansiballz-bg
+        release: "{{ target_release | default('v2') }}"
+        expected_version: "{{ {'v1': '6.14.1', 'v2': '6.15.0', 'broken': '6.15.0'}[target_release | default('v2')] }}"
+        health_url: http://127.0.0.1:8081/health
+        version_url: http://127.0.0.1:8081/version
+        health_timeout: "{{ release_health_timeout | default(15) }}"
+      register: deployment
+
+    - name: Show active slot and release
+      ansible.builtin.debug:
+        var: deployment

@@ -1,0 +1,19 @@
+[Unit]
+Description=Gracefully reloadable blue-green nginx frontend
+Requires=docker.service
+Wants=ansiballz-bg@blue.service ansiballz-bg@green.service
+After=docker.service ansiballz-bg@blue.service ansiballz-bg@green.service
+
+[Service]
+Type=simple
+ExecStartPre=-/usr/bin/docker rm -f ansiballz-bg-web
+ExecStart=/usr/bin/docker run --rm --pull=never --name ansiballz-bg-web --network host --read-only --tmpfs /tmp:rw,nosuid,size=16m --security-opt no-new-privileges --memory 64m --cpus 0.25 --volume /opt/ansiballz-bg:/state:ro --entrypoint nginx nginx:1.28.0-alpine@sha256:30f1c0d78e0ad60901648be663a710bdadf19e4c10ac6782c235200619158284 -c /state/nginx.conf -g "daemon off;"
+ExecReload=/opt/ansiballz-bg/reload.sh
+ExecStop=/usr/bin/docker stop --time 5 ansiballz-bg-web
+ExecStopPost=-/usr/bin/docker rm -f ansiballz-bg-web
+Restart=on-failure
+RestartSec=2
+TimeoutStopSec=20
+
+[Install]
+WantedBy=multi-user.target

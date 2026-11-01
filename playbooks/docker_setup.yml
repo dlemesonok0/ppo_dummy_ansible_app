@@ -1,0 +1,58 @@
+- name: Provision both demonstrations in the disposable Docker target
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Copy demo sources from the read-only controller workspace
+      ansible.builtin.copy:
+        src: ../demo/
+        dest: /usr/local/src/safe-release-demo/
+        mode: preserve
+
+    - name: Normalize demo text files for Windows checkouts
+      ansible.builtin.shell: |
+        find /usr/local/src/safe-release-demo -type f \( -name '*.sh' -o -name image -o -name '*.env' -o -name '*.service' -o -name '*.conf' \) -exec sed -i 's/\r$//' {} +
+      changed_when: false
+    - name: Check the in-place demo
+      ansible.builtin.stat:
+        path: /opt/ansiballz-demo/current
+      register: inplace
+
+    - name: Install the in-place demo once
+      ansible.builtin.command: bash /usr/local/src/safe-release-demo/install.sh
+      when: not inplace.stat.exists
+
+    - name: Check the blue-green demo
+      ansible.builtin.stat:
+        path: /opt/ansiballz-bg/active
+      register: blue_green
+
+    - name: Install the blue-green demo once
+      ansible.builtin.command: bash /usr/local/src/safe-release-demo/blue-green/install.sh
+      when: not blue_green.stat.exists
+
+    - name: Expose the blue-green frontend to the Compose bridge
+      ansible.builtin.lineinfile:
+        path: /opt/ansiballz-bg/nginx.conf
+        regexp: '^\s*listen (127\.0\.0\.1:)?8081;'
+        line: '        listen 8081;'
+      notify: Restart blue-green frontend
+
+    - name: Apply the frontend configuration before readiness checks
+      ansible.builtin.meta: flush_handlers
+
+    - name: Wait for both application health endpoints
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ item }}/health"
+        status_code: 200
+      loop: [8080, 8081]
+      register: ready
+      until: ready.status == 200
+      retries: 20
+      delay: 1
+
+  handlers:
+    - name: Restart blue-green frontend
+      ansible.builtin.systemd_service:
+        name: ansiballz-bg-web.service
+        state: restarted

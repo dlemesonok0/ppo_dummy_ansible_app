@@ -1,0 +1,9 @@
+.git
+.idea
+.venv
+vendor
+artifacts
+tmp
+**/__pycache__
+**/*.pyc
+inventory/hosts.yml
